@@ -34,16 +34,16 @@ object TopWords:
 
     log.debug(s"howMany=$cloudSize minLength=$lengthAtLeast lastNWords=$windowSize")
 
-    val observer = ConsoleObserver()
-    val engine = TopWordsManager(
+    val cfg = TopWordsFunctional.Config(
       howMany = cloudSize,
       minLength = lengthAtLeast,
       windowSize = windowSize,
-      observer = observer,
       caseInsensitive = ignoreCase.value,
       everyKSteps = everyKSteps,
       minFrequency = minFrequency
     )
+
+    val engine = TopWordsFunctional.engine(cfg)
 
     val lines = scala.io.Source.stdin.getLines
     val words =
@@ -52,8 +52,44 @@ object TopWords:
         .flatMap(_.split("(?U)[^\\p{Alpha}0-9']+"))
         .filter(_.nonEmpty)
 
-    words.foreach(engine.accept)
+    engine.process(words).foreach { stats =>
+      val out =
+        stats.top
+          .map { case (word, freq) => s"$word: $freq" }
+          .mkString(" ")
+
+      println(out)
+
+      if scala.sys.process.stdout.checkError() then
+        sys.exit(0)
+    }
 
   def main(args: Array[String]): Unit =
     ParserForMethods(this).runOrExit(args.toIndexedSeq)
     ()
+
+
+  //NON FUNCTIONAL
+  //   val observer = ConsoleObserver()
+  //   val engine = TopWordsManager(
+  //     howMany = cloudSize,
+  //     minLength = lengthAtLeast,
+  //     windowSize = windowSize,
+  //     observer = observer,
+  //     caseInsensitive = ignoreCase.value,
+  //     everyKSteps = everyKSteps,
+  //     minFrequency = minFrequency
+  //   )
+
+  //   val lines = scala.io.Source.stdin.getLines
+  //   val words =
+  //     import scala.language.unsafeNulls
+  //     lines
+  //       .flatMap(_.split("(?U)[^\\p{Alpha}0-9']+"))
+  //       .filter(_.nonEmpty)
+
+  //   words.foreach(engine.accept)
+
+  // def main(args: Array[String]): Unit =
+  //   ParserForMethods(this).runOrExit(args.toIndexedSeq)
+  //   ()
